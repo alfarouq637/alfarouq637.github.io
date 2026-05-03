@@ -1,0 +1,186 @@
+
+<h2 class="sr-only">Hill Cipher interactive demo — type plaintext, see step-by-step matrix encryption</h2>
+
+<style>
+  :root {
+    --navy: #0d1b2a;
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --surface: #132236;
+    --surface2: #1a2f47;
+    --text: #f0ede6;
+    --muted: #8fa3b8;
+    --mono: 'Courier New', monospace;
+  }
+  .hc-wrap { background: var(--navy); color: var(--text); font-family: Georgia, serif; padding: 1.5rem; border-radius: 12px; }
+  .hc-title { font-size: 12px; letter-spacing: .15em; color: var(--gold); text-transform: uppercase; margin: 0 0 .2rem; font-family: sans-serif; }
+  .hc-heading { font-size: 20px; font-weight: 700; margin: 0 0 1.2rem; }
+  .hc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  .hc-panel { background: var(--surface); border: 1px solid rgba(201,168,76,.25); border-radius: 8px; padding: 1rem; }
+  .hc-label { font-size: 10px; letter-spacing: .12em; color: var(--gold); text-transform: uppercase; margin-bottom: .5rem; font-family: sans-serif; }
+  .hc-input { width: 100%; background: var(--surface2); border: 1px solid rgba(201,168,76,.3); border-radius: 6px; color: var(--text); font-family: var(--mono); font-size: 18px; letter-spacing: .1em; padding: .5rem .75rem; box-sizing: border-box; text-transform: uppercase; }
+  .hc-input:focus { outline: none; border-color: var(--gold); }
+  .hc-btn { background: var(--gold); color: var(--navy); border: none; border-radius: 6px; font-family: Georgia, serif; font-size: 15px; font-weight: 700; padding: .6rem 1.5rem; cursor: pointer; width: 100%; margin-top: 1rem; letter-spacing: .05em; }
+  .hc-btn:hover { background: var(--gold-light); }
+  .hc-btn:active { transform: scale(.98); }
+  .steps-area { background: var(--surface); border: 1px solid rgba(201,168,76,.2); border-radius: 8px; padding: 1rem; margin-top: 1rem; font-family: var(--mono); font-size: 13px; line-height: 1.8; min-height: 60px; }
+  .result-big { font-family: var(--mono); font-size: 26px; letter-spacing: .2em; color: var(--gold); text-align: center; padding: .75rem; border: 1px solid rgba(201,168,76,.4); border-radius: 8px; margin-top: 1rem; background: var(--surface2); }
+  .error { color: #f07b7b; font-size: 13px; }
+  .mode-toggle { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .mode-btn { flex: 1; padding: .4rem; border-radius: 6px; border: 1px solid rgba(201,168,76,.4); background: transparent; color: var(--muted); font-family: Georgia, serif; font-size: 13px; cursor: pointer; }
+  .mode-btn.active { background: rgba(201,168,76,.15); color: var(--gold); border-color: var(--gold); }
+  .key-input-pair { display: flex; flex-direction: column; gap: 4px; }
+  .key-input-pair label { font-size: 10px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+  .key-num { width: 52px; height: 42px; background: var(--surface2); border: 1px solid rgba(201,168,76,.3); border-radius: 4px; color: var(--gold-light); font-family: var(--mono); font-size: 16px; text-align: center; padding: 0; box-sizing: border-box; }
+  .key-num:focus { outline: none; border-color: var(--gold); }
+  .det-info { font-size: 12px; margin-top: .4rem; font-family: sans-serif; }
+  .det-ok { color: #7ee8a2; }
+  .det-bad { color: #f07b7b; }
+  .step-line { color: var(--muted); display: block; }
+  .step-line .hl { color: var(--gold-light); }
+  .step-line .res { color: #7ee8a2; }
+  .step-line .pair { color: #7bc8f0; }
+</style>
+
+<div class="hc-wrap">
+  <div class="hc-title">Hill Cipher — Interactive Demo</div>
+  <div class="hc-heading">Encrypt your text</div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="enc-btn" onclick="setMode('encrypt')">Encrypt</button>
+    <button class="mode-btn" id="dec-btn" onclick="setMode('decrypt')">Decrypt</button>
+  </div>
+
+  <div class="hc-row">
+    <div class="hc-panel">
+      <div class="hc-label">Plaintext (letters only)</div>
+      <input class="hc-input" id="plaintext" maxlength="20" value="HI" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase()" />
+    </div>
+    <div class="hc-panel">
+      <div class="hc-label">Key Matrix K (2×2, mod 26)</div>
+      <div style="display:flex;gap:4px;flex-direction:column;margin-bottom:6px">
+        <div style="display:flex;gap:4px">
+          <div class="key-input-pair"><label>k₀₀</label><input class="key-num" id="k00" value="3" type="number" min="0" max="25" oninput="checkDet()"></div>
+          <div class="key-input-pair"><label>k₀₁</label><input class="key-num" id="k01" value="3" type="number" min="0" max="25" oninput="checkDet()"></div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <div class="key-input-pair"><label>k₁₀</label><input class="key-num" id="k10" value="2" type="number" min="0" max="25" oninput="checkDet()"></div>
+          <div class="key-input-pair"><label>k₁₁</label><input class="key-num" id="k11" value="5" type="number" min="0" max="25" oninput="checkDet()"></div>
+        </div>
+      </div>
+      <div class="det-info" id="det-info"></div>
+    </div>
+  </div>
+
+  <button class="hc-btn" id="run-btn" onclick="run()">Encrypt →</button>
+  <div class="steps-area" id="steps-out"><span class="step-line" style="color:var(--muted)">Steps will appear here...</span></div>
+  <div class="result-big" id="result-out" style="display:none"></div>
+</div>
+
+<script>
+var mode = 'encrypt';
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('enc-btn').classList.toggle('active', m === 'encrypt');
+  document.getElementById('dec-btn').classList.toggle('active', m === 'decrypt');
+  document.getElementById('run-btn').textContent = m === 'encrypt' ? 'Encrypt \u2192' : 'Decrypt \u2192';
+  document.getElementById('steps-out').innerHTML = '<span class="step-line" style="color:var(--muted)">Steps will appear here...</span>';
+  document.getElementById('result-out').style.display = 'none';
+}
+
+function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+
+function modInverse(a, m) {
+  a = ((a % m) + m) % m;
+  for (var x = 1; x < m; x++) if ((a * x) % m === 1) return x;
+  return -1;
+}
+
+function getKey() {
+  return [
+    [parseInt(document.getElementById('k00').value) || 0, parseInt(document.getElementById('k01').value) || 0],
+    [parseInt(document.getElementById('k10').value) || 0, parseInt(document.getElementById('k11').value) || 0]
+  ];
+}
+
+function matDet(k) {
+  return ((k[0][0] * k[1][1] - k[0][1] * k[1][0]) % 26 + 26) % 26;
+}
+
+function checkDet() {
+  var k = getKey();
+  var d = matDet(k);
+  var el = document.getElementById('det-info');
+  if (d === 0 || gcd(d, 26) !== 1) {
+    el.innerHTML = '<span class="det-bad">det=' + d + ' \u2014 not invertible mod 26. Try different values.</span>';
+  } else {
+    var inv = modInverse(d, 26);
+    el.innerHTML = '<span class="det-ok">det=' + d + ', det\u207B\u00B9=' + inv + ' \u2713 invertible</span>';
+  }
+}
+
+function matInverseMod26(k) {
+  var d = matDet(k);
+  if (d === 0 || gcd(d, 26) !== 1) return null;
+  var inv = modInverse(d, 26);
+  return [
+    [((k[1][1] * inv) % 26 + 26) % 26,  ((-k[0][1] * inv) % 26 + 26) % 26],
+    [((-k[1][0] * inv) % 26 + 26) % 26,  ((k[0][0] * inv) % 26 + 26) % 26]
+  ];
+}
+
+function run() {
+  var out = document.getElementById('steps-out');
+  var res = document.getElementById('result-out');
+  var txt = document.getElementById('plaintext').value.toUpperCase().replace(/[^A-Z]/g, '');
+
+  if (!txt) { out.innerHTML = '<span class="error">Please enter some letters.</span>'; res.style.display = 'none'; return; }
+
+  var k = getKey();
+  var d = matDet(k);
+
+  if (d === 0 || gcd(d, 26) !== 1) {
+    out.innerHTML = '<span class="error">Key matrix is not invertible mod 26. Adjust the key values.</span>';
+    res.style.display = 'none';
+    return;
+  }
+
+  var useKey = (mode === 'decrypt') ? matInverseMod26(k) : k;
+  var opKey  = (mode === 'decrypt') ? 'K\u207B\u00B9' : 'K';
+  var padded = txt.length % 2 !== 0;
+  if (padded) txt += 'X';
+
+  var lines = [];
+  lines.push('<span class="step-line">Input: <span class="hl">' + txt + '</span>' + (padded ? ' (X padded to even length)' : '') + '</span>');
+  if (mode === 'decrypt') {
+    var ki = matInverseMod26(k);
+    lines.push('<span class="step-line">K\u207B\u00B9 mod 26 = [[' + ki[0][0] + ',' + ki[0][1] + '],[' + ki[1][0] + ',' + ki[1][1] + ']]</span>');
+  } else {
+    lines.push('<span class="step-line">K = [[' + k[0][0] + ',' + k[0][1] + '],[' + k[1][0] + ',' + k[1][1] + ']]</span>');
+  }
+
+  var result = '';
+  for (var i = 0; i < txt.length; i += 2) {
+    var a = txt.charCodeAt(i) - 65;
+    var b = txt.charCodeAt(i + 1) - 65;
+    var r0 = useKey[0][0] * a + useKey[0][1] * b;
+    var r1 = useKey[1][0] * a + useKey[1][1] * b;
+    var c0 = ((r0 % 26) + 26) % 26;
+    var c1 = ((r1 % 26) + 26) % 26;
+    var outPair = String.fromCharCode(c0 + 65) + String.fromCharCode(c1 + 65);
+    result += outPair;
+
+    lines.push('<span class="step-line"><span class="pair">' + txt[i] + txt[i+1] + '</span> \u2192 [' + a + ', ' + b + ']</span>');
+    lines.push('<span class="step-line">  ' + opKey + ' \u00D7 [' + a + ',' + b + '] = [' + r0 + ', ' + r1 + '] mod 26 = [' + c0 + ', ' + c1 + '] \u2192 <span class="res">' + outPair + '</span></span>');
+  }
+
+  lines.push('<span class="step-line" style="margin-top:.5rem;color:var(--gold)">Result: <span class="hl">' + result + '</span></span>');
+  out.innerHTML = lines.join('');
+  res.innerHTML = (mode === 'encrypt' ? 'Ciphertext: ' : 'Plaintext: ') +
+    '<span style="color:' + (mode === 'encrypt' ? '#7ee8a2' : '#7bc8f0') + '">' + result + '</span>';
+  res.style.display = 'block';
+}
+
+checkDet();
+</script>
